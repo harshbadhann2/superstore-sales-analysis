@@ -1,0 +1,13 @@
+month,actual,forecast,type
+2017-07-01,45264.42,43530.67,holdout test
+2017-08-01,63120.89,40598.03,holdout test
+2017-09-01,87866.65,92828.63,holdout test
+2017-10-01,77776.92,52841.92,holdout test
+2017-11-01,118447.82,98620.17,holdout test
+2017-12-01,83829.32,102674.48,holdout test
+2018-01-01,,33565.3,future forecast
+2018-02-01,,20236.44,future forecast
+2018-03-01,,69240.68,future forecast
+2018-04-01,,46546.68,future forecast
+2018-05-01,,53121.16,future forecast
+2018-06-01,,52166.89,future forecast

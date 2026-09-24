@@ -1,0 +1,5 @@
+discount_band,order_lines,total_sales,total_profit,profit_margin_pct,pct_lines_losing_money
+0% (no discount),4798,1087908.47,320987.60,29.51,0.0
+1-20%,3803,846522.24,100785.47,11.91,13.8
+21-40%,460,234137.90,-35817.47,-15.30,90.2
+Over 40%,933,128632.25,-99558.59,-77.40,100.0
