@@ -1,3 +1,20 @@
+# Python
 .venv/
 __pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Secrets / local config
+.env
+.env.*
+.pgpass
+
+# Local database dumps
+*.dump
+*.backup
+*.sql.gz
+
+# OS files
 .DS_Store
+._*
+Thumbs.db
