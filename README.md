@@ -1,36 +1,79 @@
 # Superstore Sales Analysis & Forecast
 
-End-to-end analysis of the Tableau **Sample - Superstore** dataset (9,994 order lines, Jan 2014 - Dec 2017, US retail):
-load raw data into PostgreSQL, answer business questions in SQL, forecast sales in Python, and visualize in Tableau.
-
-**Tableau Public dashboard:** _[add link here]_
+SQL analysis of the **Sample - Superstore** retail dataset (9,994 order lines, Jan 2014 - Dec 2017, US) in
+PostgreSQL, plus a Holt-Winters sales forecast in Python. The raw CSV is loaded into a typed table, business
+questions are answered in SQL, and every query result is committed as a CSV in `outputs/`.
 
 ![Monthly sales forecast](outputs/forecast.png)
 
 ## Tools
 
-- **PostgreSQL 17**: data storage, cleaning via typed schema, analysis (window functions `LAG()`, `RANK()`, CTEs, `HAVING`, `FILTER`)
+- **PostgreSQL 17**: typed schema, analysis queries (CTEs, window functions, `FILTER`, `HAVING`, `DATE_TRUNC`)
 - **Python** (pandas, statsmodels, matplotlib): Holt-Winters exponential smoothing forecast
-- **Tableau Public**: interactive dashboard built from the exported CSVs
 
-## Key insights
+## Key findings
 
-The business sold **$2.30M** with **$286.4K profit (12.5% margin)** over 4 years; sales grew **51%** from 2014 ($484K) to 2017 ($733K).
+The business sold **$2.30M** with **$286.4K profit (12.5% margin)** over the four years.
 
-1. **Heavy discounts destroy profit.** Order lines discounted more than 20% are 13.9% of all lines but lost **$135.4K**,
-   equal to 47% of the company's total profit. Margin falls from **29.5%** with no discount to **-15.3%** at 21-40% off
-   and **-77.4%** above 40%. Recommendation: cap discounts at 20%.
-2. **Furniture sells but barely profits.** $742K in sales at only a **2.5% margin**, vs ~17% for Technology and
-   Office Supplies. **Tables (-$17.7K)** and **Bookcases (-$3.5K)** are loss-making, with average discounts of
-   26.1% and 21.1% vs 15.6% company-wide.
-3. **Central region has the weakest margin (7.9%)** vs West (14.9%). It sells $110K more than South yet earns
-   less profit. Central also has the highest average discount (24.0% vs 10.9% in West); Texas and Illinois alone lost $38.3K.
+1. **Heavy discounts destroy profit.** Margin falls with every discount band
+   ([`04b_discount_vs_profit.csv`](outputs/04b_discount_vs_profit.csv)):
 
-Also: 98.5% of customers ordered more than once (99.8% of revenue), so retention is strong. The #1 customer by
-revenue ($25.0K) was unprofitable (-$2.0K), which shows why revenue rankings should be read alongside profit.
+   | Discount band | Order lines | Profit | Margin |
+   |---|---:|---:|---:|
+   | 0% | 4,798 | $321.0K | 29.5% |
+   | 1-20% | 3,803 | $100.8K | 11.9% |
+   | 21-40% | 460 | -$35.8K | -15.3% |
+   | Over 40% | 933 | -$99.6K | -77.4% |
 
-**Forecast:** Holt-Winters (additive trend, multiplicative yearly seasonality) scored a **19.4% MAPE** on a 6-month
-holdout (Jul-Dec 2017), beating a same-month-last-year baseline (25.4%). It forecasts **~$275K** in sales for Jan-Jun 2018.
+   Lines discounted more than 20% are 13.9% of all lines but lost **$135.4K**, about 47% of total profit.
+   **Recommendation: cap discounts at 20%.**
+
+2. **Three sub-categories lose money** ([`04a_loss_making_subcategories.csv`](outputs/04a_loss_making_subcategories.csv)),
+   against a company-wide average discount of 15.6%:
+
+   | Sub-category | Profit | Margin | Avg discount |
+   |---|---:|---:|---:|
+   | Tables | -$17.7K | -8.56% | 26.1% |
+   | Bookcases | -$3.5K | -3.02% | 21.1% |
+   | Supplies | -$1.2K | -2.55% | 7.7% |
+
+   Tables and Bookcases carry above-average discounts, consistent with the discount-band pattern above.
+   Supplies is a small loss with a *below*-average discount, so discounting does not explain it; that one
+   needs a look at pricing or product mix. (These are correlations, not a causal test.)
+
+3. **Furniture sells but barely profits:** $742K in sales at a **2.5% margin**, vs 17.4% for Technology and
+   17.0% for Office Supplies ([`01b`](outputs/01b_sales_profit_by_category.csv)).
+
+4. **Central has the weakest regional margin (7.9%)** vs West (14.9%). It outsells South by about $110K yet
+   earns less profit ([`01a`](outputs/01a_sales_profit_by_region.csv)).
+
+Also: 98.5% of customers ordered more than once, accounting for 99.8% of revenue
+([`05`](outputs/05_repeat_vs_onetime_customers.csv)).
+
+### Forecast
+
+Holt-Winters (additive trend, multiplicative yearly seasonality, fixed up front rather than tuned on the
+holdout) was trained on 42 months and tested on a **6-month holdout (Jul-Dec 2017)**:
+
+| Model | Holdout MAPE |
+|---|---:|
+| Holt-Winters | **19.4%** |
+| Baseline: same month last year (`monthly.shift(12)`, `notebooks/forecast.py:47`) | 25.4% |
+
+Refit on all 48 months, it forecasts **~$275K** in sales for Jan-Jun 2018
+([`06_sales_forecast.csv`](outputs/06_sales_forecast.csv)).
+
+## SQL techniques
+
+All queries run against a single `orders` table (no joins needed).
+
+- **CTEs**: `sql/analysis.sql:55` (`monthly`), `:84` (`customer_revenue`), `:169-177` (chained `customer_orders` -> `labelled`)
+- **Window functions**: `LAG()` for month-over-month and `LAG(x, 12)` for year-over-year growth (`:65-69`);
+  `RANK()` for top customers (`:92`); `SUM(...) OVER ()` grand totals for % shares (`:187`, `:189`)
+- **`FILTER` aggregate**: share of loss-making lines per discount band (`:151`)
+- **`DATE_TRUNC`**: monthly grouping (`:57`)
+- **`HAVING`**: keep only loss-making sub-categories (`:127`)
+- **Loading**: psql `\copy` with `ENCODING 'WIN1252'` and `datestyle MDY` (`sql/load.sql:32-35`); money stored as exact `NUMERIC` (`sql/load.sql:25`)
 
 ## Project structure
 
@@ -52,7 +95,7 @@ outputs/                     query results as CSV, clean full table, forecast ch
 | `04b_discount_vs_profit.csv` | Profit margin by discount band |
 | `05_repeat_vs_onetime_customers.csv` | Repeat vs one-time customers |
 | `06_sales_forecast.csv` | Holdout test + 6-month forecast |
-| `superstore_clean.csv` | Full clean table (UTF-8, ISO dates) for Tableau |
+| `superstore_clean.csv` | Full clean table as a CSV export (UTF-8, ISO dates); input to the forecast |
 
 ## How to run
 
@@ -77,7 +120,9 @@ python3 -m venv .venv
 
 ## Data notes
 
-- Source: Tableau "Sample - Superstore" (US), 9,994 rows x 21 columns, one row per product line in an order.
+- Source: Tableau's "Sample - Superstore" (US) sample dataset, a fictional retailer widely used for teaching.
+  It is included here only so the analysis is reproducible; this repo does not grant any licence over it.
+- 9,994 rows x 21 columns, one row per product line in an order. Customer names are synthetic sample data.
 - The CSV is Windows-1252 encoded with US-style dates (`11/8/2016`); `load.sql` handles both.
 - `postal_code` is stored as text to keep leading zeros (e.g. Vermont `05408`).
 - Sales and profit use `NUMERIC` (exact decimals) rather than floating point.
