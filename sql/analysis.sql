@@ -1,6 +1,6 @@
 -- Superstore sales analysis.
 -- Run from the project root:  psql -d superstore -f sql/analysis.sql
--- Each "\o outputs/<file>.csv" line sends the next query's result to that CSV (for Tableau).
+-- Each "\o outputs/<file>.csv" line sends the next query's result to that CSV.
 -- "\o" on its own switches output back to the screen.
 
 \pset format csv
@@ -197,6 +197,6 @@ ORDER BY customers DESC;
 \o
 
 -- ============================================================
--- Full clean table for Tableau (one row per order line, UTF-8, ISO dates).
+-- Full clean table as a CSV export (one row per order line, UTF-8, ISO dates).
 -- ============================================================
 \copy (SELECT * FROM orders ORDER BY row_id) TO 'outputs/superstore_clean.csv' WITH (FORMAT csv, HEADER true)
