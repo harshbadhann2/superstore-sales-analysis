@@ -18,3 +18,7 @@ __pycache__/
 .DS_Store
 ._*
 Thumbs.db
+
+# Dataset: download it yourself (see README); not redistributed here
+data/superstore.csv
+outputs/superstore_clean.csv
